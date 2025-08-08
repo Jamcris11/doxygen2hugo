@@ -113,7 +113,7 @@ def __get_params(_def):
     ]
 
 def __get_return_description(_def):
-    rd = _def.find("detaileddescription").find("para").find("simplesect")
+    rd = _def.find("./detaileddescription/para/simplesect")
     if rd is None:
         return None
     return '\n\n'.join([x.text for x in rd.findall("para")])
