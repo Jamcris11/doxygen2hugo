@@ -69,7 +69,7 @@ def _generate_markdown_function(unit):
     return_type = unit["return_type"]
     return_description = (
             unit["return_description"] 
-            if "return_description" in unit else 
+            if unit["return_description"] is not None else 
             ""
     )
     
