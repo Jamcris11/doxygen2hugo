@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import generate_c as gc
+
+def handle_args():
+    parser = argparse.ArgumentParser("doxygen2hugo")
+    parser.add_argument(
+            "input_dir",
+            metavar="XML_DIR",
+            nargs=1,
+            help="Doxygen's generated xml directory"
+    )
+    parser.add_argument(
+            "-o",
+            metavar='output_dir',
+            nargs=1,
+            dest='output_dir',
+            help="Set the output directory, default is markdown/", 
+            default='markdown'
+    )
+    parser.add_argument(
+            "--disable-treeview",
+            action='store_const',
+            dest='disable_treeview',
+            default=False,
+            const=True,
+            help="Disables treeview generation"
+    )
+
+    return parser.parse_args()
+
+args = handle_args()
+
+if type(args.output_dir) is list:
+    args.output_dir = '/'.join(args.output_dir)
+if type(args.input_dir) is list:
+    args.input_dir = '/'.join(args.input_dir)
+
+# Error guard
+if not os.path.exists(args.input_dir):
+    print(f'The input directory {args.input_dir} does not exist')
+    exit(1)
+
+gc.generate(args.output_dir, args.input_dir, not args.disable_treeview)
