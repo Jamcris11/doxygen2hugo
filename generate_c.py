@@ -1,6 +1,6 @@
 import os
 import xml.etree.ElementTree as et
-from markdown import generate_markdown, generate_markdown_treeview
+from markdown_c import generate_markdown, generate_markdown_treeview
 
 _index_md = ('''---
 build:
