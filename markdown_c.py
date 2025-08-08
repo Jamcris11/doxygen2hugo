@@ -32,7 +32,7 @@ def _generate_markdown_enum(unit):
         f'## enum - {name}   \n'
         f'```c               \n'
         f'enum {name} {{     \n'
-        f'  {enums_formatted}\n'
+        f'\t{enums_formatted}\n'
         f'}}                 \n'
         f'```                \n'
         f'---                \n'
