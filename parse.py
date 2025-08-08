@@ -20,7 +20,11 @@ title: {directory_name}
 ---''')
 
 def __get_all_dir_xmls(xmlpath):
-    return [ x for x in os.listdir(xmlpath) if x.startswith("dir_") and x.endswith(".xml") ]
+    return [ 
+        x 
+        for x in os.listdir(xmlpath) 
+        if x.startswith("dir_") and x.endswith(".xml") 
+    ]
 
 def __allowed_dir(directory_data):
     return directory_data["name"] != "src"
