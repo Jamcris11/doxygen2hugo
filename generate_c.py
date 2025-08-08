@@ -27,17 +27,24 @@ def _generate__index_md(path, directory_name):
     
 def _generate_base_directories(abspath, treeview):
     crawled = "/"
+    relpath = ""
     for d in abspath.split('/'):
         newpath = os.path.join(crawled, d)
+        print(os.path.join(newpath, "_index.md"))
         if not os.path.exists(newpath):
+            relpath = os.path.join(relpath, d)
             print("- Creating " + newpath)
             os.mkdir(newpath)
             _generate__index_md(newpath, d)
+        elif os.path.exists(os.path.join(newpath, '_index.md')):
+            relpath = os.path.join(relpath, d)
         crawled = newpath
 
     treeview_path = os.path.join(crawled, "headless/treeview")
     if not os.path.exists(treeview_path) and treeview:
         os.makedirs(treeview_path)
+
+    return relpath
 
 def _parse_dir_from_xml(xmlpath, filename):
     data = {}
@@ -168,7 +175,7 @@ def _parse_xml_file(path):
 
 def generate(basepath, xmlpath, treeview):
     #basepath = os.path.abspath(basepath)
-    _generate_base_directories(basepath, treeview)
+    relpath = _generate_base_directories(basepath, treeview)
 
     refid_outpath_map = {}
     refid_xmlpath_map = {}
@@ -213,6 +220,6 @@ def generate(basepath, xmlpath, treeview):
         data["files"] = _parse_innerfiles_from_xml(xmlpath, xml_filename)
         dirs.append(data)
 
-    markdown = generate_markdown_treeview(basepath, dirs)
+    markdown = generate_markdown_treeview(relpath, dirs)
     with open(os.path.join(basepath, "headless/treeview/index.md"), 'w') as f:
         f.write(markdown)
