@@ -25,16 +25,17 @@ def _generate__index_md(path, directory_name):
     with open(path + '/_index.md', 'w') as f:
         f.write(out)
     
-def _generate_base_directories(basepath, treeview):
-    fullpath = os.getcwd()
-    for d in basepath.split('/'):
-        newpath = os.path.join(os.path.join(fullpath, d))
+def _generate_base_directories(abspath, treeview):
+    crawled = "/"
+    for d in abspath.split('/'):
+        newpath = os.path.join(crawled, d)
         if not os.path.exists(newpath):
+            print("- Creating " + newpath)
             os.mkdir(newpath)
-        _generate__index_md(newpath, d)
-        fullpath = newpath
+            _generate__index_md(newpath, d)
+        crawled = newpath
 
-    treeview_path = os.path.join(fullpath, "headless/treeview")
+    treeview_path = os.path.join(crawled, "headless/treeview")
     if not os.path.exists(treeview_path) and treeview:
         os.makedirs(treeview_path)
 
@@ -166,7 +167,7 @@ def _parse_xml_file(path):
 ### // PARSING ###
 
 def generate(basepath, xmlpath, treeview):
-    basepath = basepath.strip("/")
+    #basepath = os.path.abspath(basepath)
     _generate_base_directories(basepath, treeview)
 
     refid_outpath_map = {}
