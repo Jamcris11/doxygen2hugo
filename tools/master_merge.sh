@@ -1,6 +1,6 @@
 git checkout dev
 
-commits_since_last_merge=$(git log --oneline --decorate | sed '/master)/q' | wc -l)
+commits_since_last_merge=$(git log --oneline --decorate | sed '/build v/q' | wc -l)
 
 previous_build=$(git log --oneline | grep -m 1 -o 'build v[0-9]\+.[0-9]\+.[0-9]\+' | awk '{print $2}')
 
