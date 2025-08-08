@@ -1,15 +1,8 @@
-#--generate base dirs w _index.md 
-#-> 
-#--find all dir files 
-#->
-#--setup dirs (mkdir)
-#->
-#parse dir files for innerfiles
-
 import os
 import xml.etree.ElementTree as et
 from markdown import generate_markdown, generate_markdown_treeview
 
+_treeview   = True
 _basepath   = '/doc/jarg/'
 _xmlpath    = 'xml'
 _index_md = ('''---
@@ -45,7 +38,7 @@ def _generate_base_directories(basepath, dirs):
         fullpath = newpath
 
     treeview_path = os.path.join(fullpath, "headless/treeview")
-    if not os.path.exists(treeview_path):
+    if not os.path.exists(treeview_path) and _treeview:
         os.makedirs(treeview_path)
 
 def _parse_dir_from_xml(xmlpath, filename):
@@ -207,6 +200,11 @@ def _steps(basepath, xmlpath):
             f.write(markdown)
 
     ## Generate treeview ##
+
+    # Do not generate treeview if false
+    if _treeview == False:
+        return
+
     dirs = []
 
     # Parse directory xmls
