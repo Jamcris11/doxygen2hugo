@@ -10,7 +10,8 @@ import os
 import xml.etree.ElementTree as et
 from markdown import generate_markdown, generate_markdown_treeview
 
-_basepath = '/doc/jarg/'
+_basepath   = '/doc/jarg/'
+_xmlpath    = 'xml'
 _index_md = ('''---
 build:
     list: never
@@ -70,59 +71,105 @@ def _parse_innerfiles_from_xml(xmlpath, filename):
 
     return files
 
-def _generate_blank_file_from_xml(path):
+def _generate_blank_file(path):
     if not os.path.exists(path):
         open(path, 'a').close()
 
-# PARSING
+### PARSING ###
+
+def __get_enum_values(_def):
+    return [ o.find("name").text for o in _def.findall("enumvalue") ]
+
+def __get_variable_definition(_def):
+    result = ""
+    if _def.get("extern") == "yes":
+        result += "extern "
+    return result + __get_definition(_def)
+
+def __get_type(_def):
+    return _def.find("type").text
+
+def __get_description(_def):
+    return '\n\n'.join(
+        [ x.text for x in _def.find("detaileddescription").findall("para") ]
+    )
+
+def __get_definition(_def):
+    return _def.find("definition").text
+
+def __get_args(_def):
+    return _def.find("argsstring").text
+
+def __get_params(_def):
+    return [
+        {
+            'name': param.find("declname").text, 
+            'type': param.find("type").text
+        } for param in _def.findall("param") 
+    ]
+
+def __get_return_description(_def):
+    rd = _def.find("detaileddescription").find("para").find("simplesect")
+    if rd is None:
+        return None
+    return '\n\n'.join([x.text for x in rd.findall("para")])
+
+def __get_name(_def):
+    return _def.find("name").text
+
+def __get_kind(_def):
+    return _def.get("kind")
+
+def _parse_memberdef(data, memberdef):
+    result = { 
+        "name": data["name"],
+        "kind": data["kind"],
+    }
+
+    ## ENUM ##
+    if data["kind"] == "enum":
+        result["enum_values"]           = __get_enum_values(memberdef)
+    ## VARIABLE ##
+    elif data["kind"] == "variable":
+        result["variable_definition"]   = __get_variable_definition(memberdef)
+        result["type"]                  = __get_type(memberdef)
+        result["description"]           = __get_description(memberdef) 
+    ## FUNCTION ##
+    elif data["kind"] == "function":
+        result["return_type"]           = __get_type(memberdef)
+        result["definition"]            = __get_definition(memberdef) 
+        result["args"]                  = __get_args(memberdef) 
+        result["description"]           = __get_description(memberdef)
+        result["params"]                = __get_params(memberdef)
+        result["return_description"]    = __get_return_description(memberdef)
+
+    return result
 
 def _parse_xml_file(path):
-    data = {}
+    result = {}
     tree = et.parse(path)
     root = tree.getroot().find("compounddef")
 
-    data["kind"] = root.get("kind")
-    data["name"] = root.find("compoundname").text
-    data["defs"] = {} 
+    result["kind"] = root.get("kind")
+    result["name"] = root.find("compoundname").text
+    result["defs"] = {} 
 
-    if data["kind"] == "file": 
-        data["includes"] = [o.text for o in root.findall("includes")]
+    if result["kind"] == "file":
+        result["includes"] = [o.text for o in root.findall("includes")]
    
     for definition in root.findall("sectiondef"):
         for memberdef in definition.findall("memberdef"):
-            cdef = memberdef.find("name").text
-            kind = memberdef.get("kind")
-            data["defs"][cdef] = {}
-            data["defs"][cdef]["name"] = cdef
-            data["defs"][cdef]["kind"] = kind
+            result["defs"][__get_name(memberdef)] = _parse_memberdef(
+                {
+                    "name": __get_name(memberdef),
+                    "kind": __get_kind(memberdef)
+                },
+                memberdef
+            )
+        
+    return result
 
-            if kind == "enum":
-                data["defs"][cdef]["enum_values"] = [o.find("name").text for o in memberdef.findall("enumvalue")]
-
-            if kind == "variable":
-                data["defs"][cdef]["variable_definition"] = memberdef.find("definition").text
-                if memberdef.get("extern") == "yes":
-                    data["defs"][cdef]["variable_definition"] = (
-                        "extern " + data["defs"][cdef]["variable_definition"] )
-                data["defs"][cdef]["type"] = memberdef.find("type").text
-                data["defs"][cdef]["description"] = '\n\n'.join([x.text for x in memberdef.find("detaileddescription").findall("para")])
-
-            if kind == "function":
-                data["defs"][cdef]["return_type"] = memberdef.find("type").text
-                data["defs"][cdef]["definition"] = memberdef.find("definition").text
-                data["defs"][cdef]["args"] = memberdef.find("argsstring").text
-                data["defs"][cdef]["description"] = memberdef.find("detaileddescription").find("para").text
-                data["defs"][cdef]["params"] = []
-                for param in memberdef.findall("param"):
-                    data["defs"][cdef]["params"].append({'name': param.find("declname").text, 'type': param.find("type").text})
-
-                return_desc = memberdef.find("detaileddescription").find("para").find("simplesect")
-                if return_desc is not None:
-                    data["defs"][cdef]["return_description"] = '\n\n'.join([x.text for x in return_desc.findall("para")])
-
-    return data
-
-# // PARSING
+### // PARSING ###
 
 def _steps(basepath, xmlpath):
     basepath = basepath.strip("/")
@@ -132,16 +179,16 @@ def _steps(basepath, xmlpath):
     refid_xmlpath_map = {}
     refid_markdown_map = {}
 
-    for dirxmlpath in __get_all_dir_xmls(xmlpath):
-        data = _parse_dir_from_xml(xmlpath, dirxmlpath)
+    for xml_filename in __get_all_dir_xmls(xmlpath):
+        data = _parse_dir_from_xml(xmlpath, xml_filename)
         if not __allowed_dir(data):
             continue
         _generate_dir_from_data(basepath, data)
-        files = _parse_innerfiles_from_xml(xmlpath, dirxmlpath)
+        files = _parse_innerfiles_from_xml(xmlpath, xml_filename)
 
         for refid,filename in files.items():
             path = os.path.join(basepath, data["name"], filename + ".md")
-            _generate_blank_file_from_xml(path)
+            _generate_blank_file(path)
             refid_outpath_map[refid] = path
             refid_xmlpath_map[refid] = os.path.join(xmlpath, refid + ".xml")
 
@@ -158,16 +205,16 @@ def _steps(basepath, xmlpath):
     ## Generate treeview ##
     dirs = []
 
-    for dirxmlpath in __get_all_dir_xmls(xmlpath):
-        data = _parse_dir_from_xml(xmlpath, dirxmlpath)
+    # Parse directory xmls
+    for xml_filename in __get_all_dir_xmls(xmlpath):
+        data = _parse_dir_from_xml(xmlpath, xml_filename)
         if not __allowed_dir(data):
             continue
-        data["files"] = _parse_innerfiles_from_xml(xmlpath, dirxmlpath)
+        data["files"] = _parse_innerfiles_from_xml(xmlpath, xml_filename)
         dirs.append(data)
 
     markdown = generate_markdown_treeview(basepath, dirs)
-
     with open(os.path.join(basepath, "headless/treeview/index.md"), 'w') as f:
         f.write(markdown)
 
-_steps(_basepath, "xml")
+_steps(_basepath, _xmlpath)
