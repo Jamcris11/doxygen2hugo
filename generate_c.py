@@ -30,7 +30,6 @@ def _generate_base_directories(abspath, treeview):
     relpath = ""
     for d in abspath.split('/'):
         newpath = os.path.join(crawled, d)
-        print(os.path.join(newpath, "_index.md"))
         if not os.path.exists(newpath):
             relpath = os.path.join(relpath, d)
             print("- Creating " + newpath)
