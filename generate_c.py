@@ -2,9 +2,6 @@ import os
 import xml.etree.ElementTree as et
 from markdown import generate_markdown, generate_markdown_treeview
 
-_treeview   = True
-_basepath   = '/doc/jarg/'
-_xmlpath    = 'xml'
 _index_md = ('''---
 build:
     list: never
@@ -28,7 +25,7 @@ def _generate__index_md(path, directory_name):
     with open(path + '/_index.md', 'w') as f:
         f.write(out)
     
-def _generate_base_directories(basepath, dirs):
+def _generate_base_directories(basepath, treeview):
     fullpath = os.getcwd()
     for d in basepath.split('/'):
         newpath = os.path.join(os.path.join(fullpath, d))
@@ -38,7 +35,7 @@ def _generate_base_directories(basepath, dirs):
         fullpath = newpath
 
     treeview_path = os.path.join(fullpath, "headless/treeview")
-    if not os.path.exists(treeview_path) and _treeview:
+    if not os.path.exists(treeview_path) and treeview:
         os.makedirs(treeview_path)
 
 def _parse_dir_from_xml(xmlpath, filename):
@@ -168,9 +165,9 @@ def _parse_xml_file(path):
 
 ### // PARSING ###
 
-def _steps(basepath, xmlpath):
+def generate(basepath, xmlpath, treeview):
     basepath = basepath.strip("/")
-    _generate_base_directories(basepath, [])
+    _generate_base_directories(basepath, treeview)
 
     refid_outpath_map = {}
     refid_xmlpath_map = {}
@@ -202,7 +199,7 @@ def _steps(basepath, xmlpath):
     ## Generate treeview ##
 
     # Do not generate treeview if false
-    if _treeview == False:
+    if treeview == False:
         return
 
     dirs = []
@@ -218,5 +215,3 @@ def _steps(basepath, xmlpath):
     markdown = generate_markdown_treeview(basepath, dirs)
     with open(os.path.join(basepath, "headless/treeview/index.md"), 'w') as f:
         f.write(markdown)
-
-_steps(_basepath, _xmlpath)
