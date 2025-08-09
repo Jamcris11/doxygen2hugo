@@ -14,7 +14,11 @@ def _generate_markdown_union(unit):
 
 def _generate_markdown_variable(unit, root, parent_refid):
     name = unit["name"]
-    title = f'## variable {name}' if root["kind"] == "file" and parent_refid == None else ""
+    title = (
+        f'## variable {name}' 
+        if root["kind"] == "file" and parent_refid == None else 
+        ""
+    )
     linebreak = '---\n' if parent_refid == None else '\n'
     description = unit["description"]
 
@@ -72,10 +76,14 @@ def _generate_markdown_function_params(unit):
 def _generate_markdown_function(unit):
     name = unit["name"]
     definition = unit["definition"]
-    if unit["args"]:
-        args = "(" + ','.join([ x.strip("()")[0:-1].strip() for x in unit["args"].split(",") ]) + ")"
+    if unit["args"] != "()":
+        args = "(" + ','.join(
+            [ x.strip("()")[0:-1].strip() for x in unit["args"].split(",") ]
+        ) + ")"
+        title_args = '...'
     else:
-        args = ""
+        args = "()"
+        title_args = ''
     description = unit["description"]
     params_formatted = _generate_markdown_function_params(unit["params"])
     return_type = unit["return_type"]
@@ -86,20 +94,20 @@ def _generate_markdown_function(unit):
     )
     
     return (
-        f'---                      \n'
-        f'## function - {name} (...)\n'
-        f'{description}            \n'
-        f'```c                     \n'
-        f'{definition} {args}      \n'
-        f'```                      \n'
-        f'                         \n'
-        f'{params_formatted}       \n'
-        f'### returns              \n'
-        f'```c                     \n'
-        f'{return_type}            \n'
-        f'```                      \n'
-        f'{return_description}     \n'
-        f'                         \n'
+        f'---                                \n'
+        f'## function - {name} ({title_args})\n'
+        f'{description}                      \n'
+        f'```c                               \n'
+        f'{definition} {args}                \n'
+        f'```                                \n'
+        f'                                   \n'
+        f'{params_formatted}                 \n'
+        f'### returns                        \n'
+        f'```c                               \n'
+        f'{return_type}                      \n'
+        f'```                                \n'
+        f'{return_description}               \n'
+        f'                                   \n'
     )
 
 def _generate_markdown_includes(includes):

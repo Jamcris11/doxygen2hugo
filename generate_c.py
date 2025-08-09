@@ -105,7 +105,7 @@ def __get_params(_def):
     return [
         {
             'name': param.find("declname").text, 
-            'type': param.find("type").text
+            'type': ''.join(param.find("type").itertext())
         } for param in _def.findall("param") 
     ]
 
