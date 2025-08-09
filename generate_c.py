@@ -21,7 +21,7 @@ def __allowed_dir(directory_data):
 
 def _generate__index_md(path, directory_name):
     out = _index_md
-    out = out.replace('{directory_name}', directory_name)
+    oua = out.replace('{directory_name}', directory_name)
     with open(path + '/_index.md', 'w') as f:
         f.write(out)
     
@@ -121,7 +121,7 @@ def __get_name(_def):
 def __get_kind(_def):
     return _def.get("kind")
 
-def _parse_memberdef(data, memberdef):
+def _parse_memberdef(data, memberdef, innerclass=False):
     result = { 
         "name": data["name"],
         "kind": data["kind"],
@@ -144,12 +144,42 @@ def _parse_memberdef(data, memberdef):
         result["params"]                = __get_params(memberdef)
         result["return_description"]    = __get_return_description(memberdef)
 
+    if innerclass:
+        result["parent_refid"] = data["parent_refid"]
+        result["parent_name"] = data["parent_name"]
+
     return result
 
-def _parse_xml_file(path):
+def _parse_innerclass(refid, abspath):
     result = {}
-    tree = et.parse(path)
+    tree = et.parse(abspath)
     root = tree.getroot().find("compounddef")
+    
+    result = {}
+    result[root.find("compoundname").text] = {
+        "name": root.find("compoundname").text,
+        "kind": root.get("kind")
+    }
+
+    for memberdef in root.findall("./sectiondef/memberdef"):
+        result[memberdef.get("id")] = _parse_memberdef(
+                {
+                    "name": __get_name(memberdef),
+                    "kind": __get_kind(memberdef),
+                    "parent_refid": refid,
+                    "parent_name": root.find("compoundname").text,
+                },
+                memberdef,
+                innerclass=True
+            )
+
+    return result
+
+def _parse_xml_file(abspath):
+    result = {}
+    tree = et.parse(abspath)
+    root = tree.getroot().find("compounddef")
+    xmldir = '/' + '/'.join(abspath.split("/")[0:-1])
 
     result["kind"] = root.get("kind")
     result["name"] = root.find("compoundname").text
@@ -157,6 +187,11 @@ def _parse_xml_file(path):
 
     if result["kind"] == "file":
         result["includes"] = [o.text for o in root.findall("includes")]
+
+    ## Find structs and unions
+    for innerclass in root.findall("innerclass"):
+        refid = innerclass.get("refid")
+        result["defs"].update(_parse_innerclass(refid, os.path.join(xmldir, refid + ".xml")))
    
     for definition in root.findall("sectiondef"):
         for memberdef in definition.findall("memberdef"):
