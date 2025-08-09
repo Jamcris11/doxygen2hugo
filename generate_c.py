@@ -16,9 +16,6 @@ def __get_all_dir_xmls(xmlpath):
         if x.startswith("dir_") and x.endswith(".xml") 
     ]
 
-def __allowed_dir(directory_data):
-    return directory_data["name"] != "src"
-
 def _generate__index_md(path, directory_name):
     out = _index_md
     oua = out.replace('{directory_name}', directory_name)
@@ -54,7 +51,6 @@ def _parse_dir_from_xml(xmlpath, filename):
     data["path"] = root.find("location").get("file")
 
     return data
-
 
 def _generate_dir_from_data(basepath, data):
     newpath = os.path.join(basepath, data["path"])
@@ -208,7 +204,6 @@ def _parse_xml_file(abspath):
 ### // PARSING ###
 
 def generate(basepath, xmlpath, treeview):
-    #basepath = os.path.abspath(basepath)
     relpath = _generate_base_directories(basepath, treeview)
 
     refid_outpath_map = {}
@@ -217,8 +212,6 @@ def generate(basepath, xmlpath, treeview):
 
     for xml_filename in __get_all_dir_xmls(xmlpath):
         data = _parse_dir_from_xml(xmlpath, xml_filename)
-        if not __allowed_dir(data):
-            continue
         _generate_dir_from_data(basepath, data)
         files = _parse_innerfiles_from_xml(xmlpath, xml_filename)
 
@@ -249,8 +242,6 @@ def generate(basepath, xmlpath, treeview):
     # Parse directory xmls
     for xml_filename in __get_all_dir_xmls(xmlpath):
         data = _parse_dir_from_xml(xmlpath, xml_filename)
-        if not __allowed_dir(data):
-            continue
         data["files"] = _parse_innerfiles_from_xml(xmlpath, xml_filename)
         dirs.append(data)
 
