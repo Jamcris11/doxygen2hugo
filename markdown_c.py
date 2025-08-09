@@ -18,7 +18,6 @@ def _generate_markdown_variable(unit, root, parent_refid):
     linebreak = '---\n' if parent_refid == None else '\n'
     description = unit["description"]
 
-    print(unit)
     if root["kind"] != "file" or parent_refid == None:
         variable_definition = unit["variable_definition"]
     else:
@@ -73,7 +72,10 @@ def _generate_markdown_function_params(unit):
 def _generate_markdown_function(unit):
     name = unit["name"]
     definition = unit["definition"]
-    args = "(...)" if unit["args"] != "()" else "()"
+    if unit["args"]:
+        args = "(" + ','.join([ x.strip("()")[0:-1].strip() for x in unit["args"].split(",") ]) + ")"
+    else:
+        args = ""
     description = unit["description"]
     params_formatted = _generate_markdown_function_params(unit["params"])
     return_type = unit["return_type"]
@@ -84,20 +86,20 @@ def _generate_markdown_function(unit):
     )
     
     return (
-        f'---                 \n'
-        f'## function - {name}\n'
-        f'{description}       \n'
-        f'```c                \n'
-        f'{definition} {args} \n'
-        f'```                 \n'
-        f'                    \n'
-        f'{params_formatted}  \n'
-        f'### returns         \n'
-        f'```c                \n'
-        f'{return_type}       \n'
-        f'```                 \n'
-        f'{return_description}\n'
-        f'                    \n'
+        f'---                      \n'
+        f'## function - {name} (...)\n'
+        f'{description}            \n'
+        f'```c                     \n'
+        f'{definition} {args}      \n'
+        f'```                      \n'
+        f'                         \n'
+        f'{params_formatted}       \n'
+        f'### returns              \n'
+        f'```c                     \n'
+        f'{return_type}            \n'
+        f'```                      \n'
+        f'{return_description}     \n'
+        f'                         \n'
     )
 
 def _generate_markdown_includes(includes):
