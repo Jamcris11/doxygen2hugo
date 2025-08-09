@@ -77,9 +77,7 @@ def _generate_markdown_function(unit):
     name = unit["name"]
     definition = unit["definition"]
     if unit["args"] != "()":
-        args = "(" + ','.join(
-            [ x.strip("()")[0:-1].strip() for x in unit["args"].split(",") ]
-        ) + ")"
+        args = "(" + ','.join([ x["type"] for x in unit["params"] ]) + ")"
         title_args = '...'
     else:
         args = "()"
