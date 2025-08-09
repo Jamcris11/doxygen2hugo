@@ -43,4 +43,8 @@ if not os.path.exists(args.input_dir):
     print(f'The input directory {args.input_dir} does not exist')
     exit(1)
 
-gc.generate(args.output_dir, args.input_dir, not args.disable_treeview)
+gc.generate(
+        os.path.abspath(args.output_dir), 
+        os.path.abspath(args.input_dir), 
+        not args.disable_treeview
+)

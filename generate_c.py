@@ -1,6 +1,6 @@
 import os
 import xml.etree.ElementTree as et
-from markdown import generate_markdown, generate_markdown_treeview
+from markdown_c import generate_markdown, generate_markdown_treeview
 
 _index_md = ('''---
 build:
@@ -16,27 +16,31 @@ def __get_all_dir_xmls(xmlpath):
         if x.startswith("dir_") and x.endswith(".xml") 
     ]
 
-def __allowed_dir(directory_data):
-    return directory_data["name"] != "src"
-
 def _generate__index_md(path, directory_name):
     out = _index_md
-    out = out.replace('{directory_name}', directory_name)
+    oua = out.replace('{directory_name}', directory_name)
     with open(path + '/_index.md', 'w') as f:
         f.write(out)
     
-def _generate_base_directories(basepath, treeview):
-    fullpath = os.getcwd()
-    for d in basepath.split('/'):
-        newpath = os.path.join(os.path.join(fullpath, d))
+def _generate_base_directories(abspath, treeview):
+    crawled = "/"
+    relpath = ""
+    for d in abspath.split('/'):
+        newpath = os.path.join(crawled, d)
         if not os.path.exists(newpath):
+            relpath = os.path.join(relpath, d)
+            print("- Creating " + newpath)
             os.mkdir(newpath)
-        _generate__index_md(newpath, d)
-        fullpath = newpath
+            _generate__index_md(newpath, d)
+        elif os.path.exists(os.path.join(newpath, '_index.md')):
+            relpath = os.path.join(relpath, d)
+        crawled = newpath
 
-    treeview_path = os.path.join(fullpath, "headless/treeview")
+    treeview_path = os.path.join(crawled, "headless/treeview")
     if not os.path.exists(treeview_path) and treeview:
         os.makedirs(treeview_path)
+
+    return relpath
 
 def _parse_dir_from_xml(xmlpath, filename):
     data = {}
@@ -47,7 +51,6 @@ def _parse_dir_from_xml(xmlpath, filename):
     data["path"] = root.find("location").get("file")
 
     return data
-
 
 def _generate_dir_from_data(basepath, data):
     newpath = os.path.join(basepath, data["path"])
@@ -98,7 +101,7 @@ def __get_params(_def):
     return [
         {
             'name': param.find("declname").text, 
-            'type': param.find("type").text
+            'type': ''.join(param.find("type").itertext())
         } for param in _def.findall("param") 
     ]
 
@@ -114,7 +117,7 @@ def __get_name(_def):
 def __get_kind(_def):
     return _def.get("kind")
 
-def _parse_memberdef(data, memberdef):
+def _parse_memberdef(data, memberdef, innerclass=False):
     result = { 
         "name": data["name"],
         "kind": data["kind"],
@@ -137,12 +140,42 @@ def _parse_memberdef(data, memberdef):
         result["params"]                = __get_params(memberdef)
         result["return_description"]    = __get_return_description(memberdef)
 
+    if innerclass:
+        result["parent_refid"] = data["parent_refid"]
+        result["parent_name"] = data["parent_name"]
+
     return result
 
-def _parse_xml_file(path):
+def _parse_innerclass(refid, abspath):
     result = {}
-    tree = et.parse(path)
+    tree = et.parse(abspath)
     root = tree.getroot().find("compounddef")
+    
+    result = {}
+    result[root.find("compoundname").text] = {
+        "name": root.find("compoundname").text,
+        "kind": root.get("kind")
+    }
+
+    for memberdef in root.findall("./sectiondef/memberdef"):
+        result[memberdef.get("id")] = _parse_memberdef(
+                {
+                    "name": __get_name(memberdef),
+                    "kind": __get_kind(memberdef),
+                    "parent_refid": refid,
+                    "parent_name": root.find("compoundname").text,
+                },
+                memberdef,
+                innerclass=True
+            )
+
+    return result
+
+def _parse_xml_file(abspath):
+    result = {}
+    tree = et.parse(abspath)
+    root = tree.getroot().find("compounddef")
+    xmldir = '/' + '/'.join(abspath.split("/")[0:-1])
 
     result["kind"] = root.get("kind")
     result["name"] = root.find("compoundname").text
@@ -150,6 +183,11 @@ def _parse_xml_file(path):
 
     if result["kind"] == "file":
         result["includes"] = [o.text for o in root.findall("includes")]
+
+    ## Find structs and unions
+    for innerclass in root.findall("innerclass"):
+        refid = innerclass.get("refid")
+        result["defs"].update(_parse_innerclass(refid, os.path.join(xmldir, refid + ".xml")))
    
     for definition in root.findall("sectiondef"):
         for memberdef in definition.findall("memberdef"):
@@ -166,8 +204,7 @@ def _parse_xml_file(path):
 ### // PARSING ###
 
 def generate(basepath, xmlpath, treeview):
-    basepath = basepath.strip("/")
-    _generate_base_directories(basepath, treeview)
+    relpath = _generate_base_directories(basepath, treeview)
 
     refid_outpath_map = {}
     refid_xmlpath_map = {}
@@ -175,8 +212,6 @@ def generate(basepath, xmlpath, treeview):
 
     for xml_filename in __get_all_dir_xmls(xmlpath):
         data = _parse_dir_from_xml(xmlpath, xml_filename)
-        if not __allowed_dir(data):
-            continue
         _generate_dir_from_data(basepath, data)
         files = _parse_innerfiles_from_xml(xmlpath, xml_filename)
 
@@ -207,11 +242,9 @@ def generate(basepath, xmlpath, treeview):
     # Parse directory xmls
     for xml_filename in __get_all_dir_xmls(xmlpath):
         data = _parse_dir_from_xml(xmlpath, xml_filename)
-        if not __allowed_dir(data):
-            continue
         data["files"] = _parse_innerfiles_from_xml(xmlpath, xml_filename)
         dirs.append(data)
 
-    markdown = generate_markdown_treeview(basepath, dirs)
+    markdown = generate_markdown_treeview(relpath, dirs)
     with open(os.path.join(basepath, "headless/treeview/index.md"), 'w') as f:
         f.write(markdown)
