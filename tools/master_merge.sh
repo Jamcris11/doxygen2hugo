@@ -1,17 +1,24 @@
 git checkout dev
 
-commits_since_last_merge=$(git log --oneline --decorate | sed '/build v/q' | wc -l)
-
 previous_build=$(git log --oneline | grep -m 1 -o 'build v[0-9]\+.[0-9]\+.[0-9]\+' | awk '{print $2}')
 
 major=$(grep 'MAJOR_BUILD' .ENV | awk '{print $NF}')
 previous_major="$(echo $previous_build | cut -d '.' -f1)"
 previous_minor="$(echo $previous_build | cut -d '.' -f2)"
 
-if [ "$major" = "$previous_major" ]; then
+if test "$1" = "--new-minor" && test "$major" = "$previous_major"; then
 	minor=$((previous_minor+1))
+elif test "$major" = "$previous_major"; then
+	minor=$previous_minor
 else
 	minor=0
+fi
+
+if test "$1" != "--new-minor"; then
+	last_commits_since_last_merge=$(echo $previous_build | sed 's/\./ /g' | awk '{ print $NF }')
+	commits_since_last_merge=$(($last_commits_since_last_merge + $(git log --oneline --decorate | sed '/build v/q' | wc -l)))
+else
+	commits_since_last_merge=$(git log --oneline --decorate | sed '/build v/q' | wc -l)
 fi
 
 new_build="build $major.$minor.$commits_since_last_merge"

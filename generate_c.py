@@ -9,6 +9,10 @@ build:
 title: {directory_name}
 ---''')
 
+_rendered_index_md = ('''---
+title: {directory_name}
+---''')
+
 def __get_all_dir_xmls(xmlpath):
     return [ 
         x 
@@ -16,8 +20,8 @@ def __get_all_dir_xmls(xmlpath):
         if x.startswith("dir_") and x.endswith(".xml") 
     ]
 
-def _generate__index_md(path, directory_name):
-    out = _index_md
+def _generate__index_md(path, directory_name, isbasedir=False):
+    out = _rendered_index_md if isbasedir else _index_md
     oua = out.replace('{directory_name}', directory_name)
     with open(path + '/_index.md', 'w') as f:
         f.write(out)
@@ -31,7 +35,11 @@ def _generate_base_directories(abspath, treeview):
             relpath = os.path.join(relpath, d)
             print("- Creating " + newpath)
             os.mkdir(newpath)
-            _generate__index_md(newpath, d)
+            # If last element
+            if d == abspath.split('/')[-1]:
+                _generate__index_md(newpath, d, True)
+            else:
+                _generate__index_md(newpath, d)
         elif os.path.exists(os.path.join(newpath, '_index.md')):
             relpath = os.path.join(relpath, d)
         crawled = newpath
@@ -105,6 +113,13 @@ def __get_params(_def):
         } for param in _def.findall("param") 
     ]
 
+def __get_macro_params(_def):
+    return [
+        {
+            'name': param.find("defname").text
+        } for param in _def.findall("param")
+    ]
+
 def __get_return_description(_def):
     rd = _def.find("./detaileddescription/para/simplesect")
     if rd is None:
@@ -116,6 +131,12 @@ def __get_name(_def):
 
 def __get_kind(_def):
     return _def.get("kind")
+
+def __get_initializer(_def):
+    initializer = _def.find("initializer")
+    if initializer == None:
+        return None
+    return initializer.text
 
 def _parse_memberdef(data, memberdef, innerclass=False):
     result = { 
@@ -139,6 +160,9 @@ def _parse_memberdef(data, memberdef, innerclass=False):
         result["description"]           = __get_description(memberdef)
         result["params"]                = __get_params(memberdef)
         result["return_description"]    = __get_return_description(memberdef)
+    elif data["kind"] == "define":
+        result["params"]                = __get_macro_params(memberdef)
+        result["initializer"]           = __get_initializer(memberdef)
 
     if innerclass:
         result["parent_refid"] = data["parent_refid"]
