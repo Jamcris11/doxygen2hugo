@@ -11,7 +11,6 @@ def _generate_markdown_struct(unit):
 
 def _generate_markdown_define(unit):
     name = unit["name"]
-
     initializer = unit["initializer"]
     if initializer == None:
         initializer = ''
@@ -19,12 +18,14 @@ def _generate_markdown_define(unit):
         params = "(" + ','.join([ x["name"] for x in unit["params"] ]) + ")"
     else:
         params = ''
+    description = unit["description"]
 
     return (
         f'---                                 \n'
         f'```c                                \n'
         f'#define {name}{params} {initializer}\n'
         f'```                                 \n'
+        f'{description}                       \n'
         f'                                    \n'
     )
 

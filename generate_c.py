@@ -164,6 +164,7 @@ def _parse_memberdef(data, memberdef, innerclass=False):
     elif data["kind"] == "define":
         result["params"]                = __get_macro_params(memberdef)
         result["initializer"]           = __get_initializer(memberdef)
+        result["description"]           = __get_description(memberdef)
 
     if innerclass:
         result["parent_refid"] = data["parent_refid"]
