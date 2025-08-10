@@ -8,6 +8,26 @@ def _generate_markdown_struct(unit):
     name = unit["name"]
     return f'## struct - {name}\n\n'
 
+
+def _generate_markdown_define(unit):
+    name = unit["name"]
+
+    initializer = unit["initializer"]
+    if initializer == None:
+        initializer = ''
+    if unit["params"]:
+        params = "(" + ','.join([ x["name"] for x in unit["params"] ]) + ")"
+    else:
+        params = ''
+
+    return (
+        f'---                                 \n'
+        f'```c                                \n'
+        f'#define {name}{params} {initializer}\n'
+        f'```                                 \n'
+        f'                                    \n'
+    )
+
 def _generate_markdown_union(unit):
     name = unit["name"]
     return f'## union - {name}\n\n'
@@ -31,11 +51,11 @@ def _generate_markdown_variable(unit, root, parent_refid):
 
     return (
         f'{linebreak}'
-        f'{title}\n'
-        f'{description}\n'
-        f'```c\n'
+        f'{title}              \n'
+        f'{description}        \n'
+        f'```c                 \n'
         f'{variable_definition}\n'
-        f'```\n'
+        f'```                  \n'
     )
 
 def _generate_markdown_enum(unit):
@@ -137,6 +157,8 @@ def generate_markdown(data: dict):
                 markdown = _generate_markdown_enum(v)
             case "variable":
                 markdown = _generate_markdown_variable(v, data, parent_refid)
+            case "define":
+                markdown = _generate_markdown_define(v)
             case _:
                 markdown = "undefined markdown behavior for kind " + v["kind"]
 
