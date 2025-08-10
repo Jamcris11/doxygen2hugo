@@ -160,6 +160,7 @@ def _parse_memberdef(data, memberdef, innerclass=False):
         result["description"]           = __get_description(memberdef)
         result["params"]                = __get_params(memberdef)
         result["return_description"]    = __get_return_description(memberdef)
+    ## DEFINES/MACROS ##
     elif data["kind"] == "define":
         result["params"]                = __get_macro_params(memberdef)
         result["initializer"]           = __get_initializer(memberdef)
